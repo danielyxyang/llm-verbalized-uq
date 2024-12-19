@@ -1,0 +1,20 @@
+torch==2.2.2 # due to compatibility issues with NVML API (see https://github.com/pytorch/pytorch/pull/116125)
+numpy==1.26.4
+scipy==1.14.1
+pandas==2.2.2
+matplotlib==3.9.2
+
+# libraries for interactive notebooks
+ipykernel==6.29.5
+ipywidgets==8.1.5
+
+# libraries for open-source models
+huggingface-hub[hf_transfer]==0.24.6
+transformers==4.44.2
+datasets==2.21.0
+accelerate==0.33.0
+bitsandbytes==0.43.3
+
+# libraries for API models
+openai==1.43.0
+tiktoken==0.7.0
