@@ -120,9 +120,7 @@ def detect_names_from_dict(responses_all, dataset_names=None, model_names=None, 
         method_names = [method_name_tagged for method_name in PROMPT_METHODS for method_name_tagged in responses_all[dataset_names[0]][model_names[0]] if method_name_tagged.split(":")[0] == method_name]
     return dataset_names, model_names, method_names
 
-def extract_predictions(responses_all, sample=None):
-    random.seed(0)
-
+def extract_predictions(responses_all):
     dataset_names, model_names, method_names = detect_names_from_dict(responses_all)
     y_true_all = defaultdict(lambda: defaultdict(dict))
     y_pred_all = defaultdict(lambda: defaultdict(dict))
@@ -133,16 +131,39 @@ def extract_predictions(responses_all, sample=None):
                 if responses is None:
                     responses_valid = []
                 else:
-                    responses_valid = responses[VALID_ANSWER] if sample is None or len(responses[VALID_ANSWER]) == 0 else random.choices(responses[VALID_ANSWER], k=sample)
+                    responses_valid = responses[VALID_ANSWER]
 
                 y_true_all[dataset_name][model_name][method_name] = [response["is_correct"] for _, response in responses_valid]
                 y_pred_all[dataset_name][model_name][method_name] = [response["confidence"] for _, response in responses_valid]
 
     return y_true_all, y_pred_all
 
-def save_predictions(responses_all, path, sample=None):
-    dataset_names, model_names, method_names = detect_names_from_dict(responses_all)
-    y_true_all, y_pred_all = extract_predictions(responses_all, sample=sample)
+def sample_predictions(y_true_all, y_pred_all, k, seed=0):
+    random.seed(seed)
+
+    dataset_names, model_names, method_names = detect_names_from_dict(y_true_all)
+    y_true_sampled_all = defaultdict(lambda: defaultdict(dict))
+    y_pred_sampled_all = defaultdict(lambda: defaultdict(dict))
+    for dataset_name in dataset_names:
+        for model_name in model_names:
+            for method_name in method_names:
+                y_true = y_true_all[dataset_name][model_name][method_name]
+                y_pred = y_pred_all[dataset_name][model_name][method_name]
+                if len(y_true) == 0:
+                    y_true_sampled = []
+                    y_pred_sampled = []
+                else:
+                    indices_sampled = random.choices(range(len(y_true)), k=k)
+                    y_true_sampled = [y_true[i] for i in indices_sampled]
+                    y_pred_sampled = [y_pred[i] for i in indices_sampled]
+
+                y_true_sampled_all[dataset_name][model_name][method_name] = y_true_sampled
+                y_pred_sampled_all[dataset_name][model_name][method_name] = y_pred_sampled
+
+    return y_true_sampled_all, y_pred_sampled_all
+
+def save_predictions(path, y_true_all, y_pred_all):
+    dataset_names, model_names, method_names = detect_names_from_dict(y_true_all)
 
     for dataset_name in dataset_names:
         for model_name in model_names:

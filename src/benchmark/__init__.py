@@ -12,6 +12,7 @@ from benchmark.evaluation import (
     load_predictions,
     load_responses,
     load_responses_all,
+    sample_predictions,
     save_predictions,
 )
 from benchmark.models import (
