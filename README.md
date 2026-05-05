@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 ### Run evaluation
 
-We provide all raw responses and predictions from our evaluated LLMs in `results.zip`, which can be downloaded [here](https://doi.org/10.5281/zenodo.14531920) should be extracted into the `results` folder. The `results.zip` consists of the following directories:
+We provide all raw responses and predictions from our evaluated LLMs in `results.zip`, which can be downloaded [here](https://doi.org/10.5281/zenodo.14531920) and should be extracted into the `results` folder. The `results.zip` consists of the following directories:
 * `responses`: contains all raw responses in JSON format
 * `predictions`: contains all predicted confidence scores of valid responses and the corresponding ground-truth correctness labels in numpy format
 * `predictions_sampled`: contains 1000 random samples (with replacement) from `predictions` used for evaluation in our paper
