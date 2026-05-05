@@ -3,6 +3,7 @@ numpy==1.26.4
 scipy==1.14.1
 pandas==2.2.2
 matplotlib==3.9.2
+relplot==1.0.3
 
 # libraries for interactive notebooks
 ipykernel==6.29.5
