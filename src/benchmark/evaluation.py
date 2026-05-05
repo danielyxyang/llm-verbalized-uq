@@ -206,18 +206,58 @@ def aggregate_responses(responses_all, dataset_names, model_names, method_names)
     return responses_agg
 
 # reference: https://github.com/scikit-learn/scikit-learn/blob/8721245511de2f225ff5f9aa5f5fadce663cd4a3/sklearn/calibration.py#L927
-def calibration_curve(y_true, y_pred, n_bins=10):
+def calibration_curve(y_true, y_pred, n_bins, return_vars=False):
+    # compute bins
     bins = np.linspace(0.0, 1.0, n_bins + 1)
     binids = np.digitize(y_pred, bins[1:-1])
-
-    bin_true = np.bincount(binids, weights=y_true, minlength=len(bins)-1)
-    bin_pred = np.bincount(binids, weights=y_pred, minlength=len(bins)-1)
     bin_count = np.bincount(binids, minlength=len(bins)-1)
 
-    prob_true = safe_div(bin_true, bin_count, default=np.nan)
-    prob_pred = safe_div(bin_pred, bin_count, default=np.nan)
+    # compute mean of true/predicted probabilities per bin
+    prob_true = np.bincount(binids, weights=y_true, minlength=len(bins)-1)
+    prob_true = safe_div(prob_true, bin_count, default=np.nan)
+    prob_pred = np.bincount(binids, weights=y_pred, minlength=len(bins)-1)
+    prob_pred = safe_div(prob_pred, bin_count, default=np.nan)
 
-    return prob_true, prob_pred, bins, bin_count
+    # compute variance and covariance of true/predicted probabilities per bin
+    var_true = np.bincount(binids, weights=(y_true - prob_true[binids]) ** 2, minlength=len(bins)-1)
+    var_true = safe_div(var_true, bin_count, default=np.nan)
+    var_pred = np.bincount(binids, weights=(y_pred - prob_pred[binids]) ** 2, minlength=len(bins)-1)
+    var_pred = safe_div(var_pred, bin_count, default=np.nan)
+    cov = np.bincount(binids, weights=(y_pred - prob_pred[binids]) * (y_true - prob_true[binids]), minlength=len(bins)-1)
+    cov = safe_div(cov, bin_count, default=np.nan)
+
+    if return_vars:
+        return prob_true, prob_pred, var_true, var_pred, cov, bins, bin_count
+    else:
+        return prob_true, prob_pred, bins, bin_count
+
+
+def calibration_error(y_true, y_pred, n_bins):
+    n_samples = len(y_true)
+    prob_true, prob_pred, _, bin_count = calibration_curve(y_true, y_pred, n_bins=n_bins)
+
+    ece = np.sum(bin_count / n_samples * np.abs(prob_pred - prob_true), where=bin_count > 0)
+    mce = np.max(np.abs(prob_true - prob_pred), where=bin_count > 0, initial=0)
+    return ece, mce
+
+# reference: https://journals.ametsoc.org/view/journals/wefo/23/4/2007waf2006116_1.xml
+def brier_score_decomposition(y_true, y_pred, n_bins, full=False):
+    n_samples = len(y_true)
+    prob_true, prob_pred, var_true, var_pred, cov, _, bin_count = calibration_curve(y_true, y_pred, n_bins=n_bins, return_vars=True)
+    print(prob_true - np.mean(y_true), bin_count)
+
+    # compute Brier score decomposition
+    rel = np.sum(bin_count / n_samples * (prob_pred - prob_true) ** 2, where=bin_count > 0)
+    res = np.sum(bin_count / n_samples * (prob_true - np.mean(y_true)) ** 2, where=bin_count > 0)
+    unc = np.var(y_true)
+    # wbv = np.sum(bin_count / n_samples * var_pred, where=bin_count > 0)
+    wbv = np.var(y_pred) - np.sum(bin_count / n_samples * (prob_pred - np.mean(y_pred)) ** 2, where=bin_count > 0)
+    wbc = 2 * np.sum(bin_count / n_samples * cov, where=bin_count > 0)
+    if full:
+        return rel, res, unc, wbv, wbc
+    else:
+        gres = res - wbv + wbc
+        return rel, gres, unc
 
 def empirical_distr(samples, n_bins):
     bins = np.linspace(0.0, 1.0, n_bins + 1)
